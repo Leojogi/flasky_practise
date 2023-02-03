@@ -31,7 +31,7 @@ def logout():
     return redirect(url_for('main.index'))    # 重定向至主页面路由
 
 
-@auth.route('/register', method=['GET', 'POST'])
+@auth.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():  # Flask-WTK的validate_on_submit()函数会验证表单数据
@@ -61,7 +61,7 @@ def confirm(token):
 @auth.before_app_request
 def before_request():
     if current_user.is_authenticated and not current_user.confirmed and request.blueprint != 'auth' and request.endpoint != 'static':
-        return redirect(url_for('auth.unconfirmed')      # 重定向至未确认路由
+        return redirect(url_for('auth.unconfirmed'))      # 重定向至未确认路由
 
 
 # 未确认路由
@@ -82,7 +82,7 @@ def resend_confirmation():
     return redirect(url_for('main.index'))    # 重定向至主页面路由
 
 
-@auth.route('/change-password', method=['GET', 'POST'])
+@auth.route('/change-password', methods=['GET', 'POST'])
 @login_required   # 保护这个路由
 def change_password():
     form = ChangePasswordForm()
@@ -128,10 +128,29 @@ def password_reset(token):
     return render_template('auth/reset_password.html', form=form)
 
 
-
+@auth.route('/change_email', methods=['GET', 'POST'])
+@login_required   # 保护这个路由
 def change_email_request():
     form = ChangeEmailForm()
     if form.validate_on_submit():
         if current_user.verify_password(form.password.data):
-            new_mail = form.email.data.lower()
-            token
+            new_email = form.email.data.lower()
+            token = current_user.generate_email_change_token(new_email)
+            send_email(to=new_email, subject='Confirm your email address', template='auth/email/change_email', user=current_user, token=token)  # 发送邮件
+            flash('An email with instructions to reset your new email address has been sent to you.')
+            return redirect(url_for('main.index'))
+        else:
+            flash('Invalid email or password.')
+    return render_template('auth/change_email.html', form=form)
+
+
+@auth.route('/change_email/<token>')
+@login_required
+def change_email(token):
+    if current_user.change_email(token):
+        db.session.commit()
+        flash('Your email address has been updated.')
+    else:
+        flash('Invalid request.')
+    return redirect(url_for('main.index'))
+

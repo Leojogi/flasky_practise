@@ -4,9 +4,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from . import login_manager
 from itsdangerous import TimedSerializer as Serializer
-
 from authlib.jose import jwt, JoseError
 from flask import current_app
+
 
 # 获取已登录用户信息时调用
 @login_manager.user_loader
@@ -37,7 +37,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(64), unique=True, index=True)
 
     # 账户确认状态位
-    confirmed = db.Column(db.Boolen, default=False)
+    confirmed = db.Column(db.Boolean, default=False)
 
     @property
     def password(self):
